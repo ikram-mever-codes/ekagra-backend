@@ -5,6 +5,8 @@ import ErrorHandler from "../utils/errorHandler.js";
 import Payment from "../models/paymentModel.js";
 import Course from "../models/courseModel.js";
 import Coupon from "../models/couponMode.js";
+import Trash from "../models/TrashModel.js";
+
 export const createOrder = async (req, res, next) => {
   const { courseId, referenceCode, couponCode } = req.body;
 
@@ -13,31 +15,42 @@ export const createOrder = async (req, res, next) => {
     return next(new ErrorHandler("Invalid Course! Try Later", 404));
   }
   let amount = course.price;
+
   if (referenceCode) {
     let coupon = await Coupon.findOne({ code: referenceCode });
     if (coupon && coupon.type === "referral") {
       let discount = coupon.discount;
       const discountAmount = (amount * discount) / 100;
-      const finalAmount = amount - discountAmount;
-      amount = finalAmount;
-      coupon.usageCount = coupon.usageCount + 1;
+      amount -= discountAmount;
+      coupon.usageCount += 1;
       await coupon.save();
     }
   }
+
   if (couponCode) {
     let coupon = await Coupon.findOne({ code: couponCode });
-    if (coupon) {
-      let discount = coupon.discount;
-      const discountAmount = (amount * discount) / 100;
-      const finalAmount = amount - discountAmount;
-      amount = finalAmount;
-      coupon.usageCount = coupon.usageCount + 1;
-      await coupon.save();
+
+    if (!coupon) {
+      return next(new ErrorHandler("Invalid Coupon Code", 400));
     }
+
+    const currentDate = new Date();
+    if (coupon.start && currentDate < new Date(coupon.start)) {
+      return next(new ErrorHandler("Coupon is not active yet", 400));
+    }
+    if (coupon.end && currentDate > new Date(coupon.end)) {
+      return next(new ErrorHandler("Coupon has expired", 400));
+    }
+
+    let discount = coupon.discount;
+    const discountAmount = (amount * discount) / 100;
+    amount -= discountAmount;
+    coupon.usageCount += 1;
+    await coupon.save();
   }
+
   try {
-    let orderAmount = amount * 100;
-    orderAmount = Math.floor(orderAmount);
+    let orderAmount = Math.floor(amount * 100);
     const order = await razorpayService.orders.create({
       amount: orderAmount,
       currency: "INR",
@@ -116,16 +129,46 @@ export const paymentVerification = async (req, res) => {
     });
   }
 };
-
 export const deleteAdm = async (req, res, next) => {
   try {
     const { id } = req.params;
+
     const adm = await Admission.findById(id);
     if (!adm) {
       return next(new ErrorHandler("Admission not Found!", 404));
     }
+    const trashData = {
+      fullName: adm.fullName,
+      fatherName: adm.fatherName,
+      mobileNumber: adm.mobileNumber,
+      dob: adm.dob,
+      gender: adm.gender,
+      source: adm.source,
+      email: adm.email,
+      cityName: adm.cityName,
+      bloodGroup: adm.bloodGroup,
+      photo: adm.photo,
+      aadharFront: adm.aadharFront,
+      preparation: adm.preparation,
+      amount: adm.amount,
+      studentCode: adm.studentCode,
+      paymentStatus: adm.payment.status,
+      paymentDate: adm.payment.date,
+      city: adm.city, // Should pass the full object here if the schema expects it
+      branch: adm.branch, // Same for branch
+      course: adm.course, // Same for course
+      batch: adm.batch, // Same for batch
+      address: adm.address,
+      createdAt: adm.createdAt,
+      updatedAt: adm.updatedAt,
+    };
+
+    let trash = new Trash(trashData);
+    await trash.save();
+
     await Admission.findByIdAndDelete(id);
-    return res.status(200).json({ message: "Admission Deleted Succssfully!" });
+
+    return res.status(200).json({ message: "Admission Deleted Successfully!" });
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }

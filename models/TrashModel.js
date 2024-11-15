@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const amissionSchema = new mongoose.Schema(
+const trashSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
@@ -31,9 +31,6 @@ const amissionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    whatsappNumber: {
-      type: String,
-    },
     address: {
       pincode: { type: String, required: true, minLength: 6, maxLength: 6 },
       addressLine1: {
@@ -61,7 +58,7 @@ const amissionSchema = new mongoose.Schema(
       required: true,
     },
 
-    aadharBack: {
+    aadharFront: {
       type: String,
       required: true,
     },
@@ -91,22 +88,13 @@ const amissionSchema = new mongoose.Schema(
     },
     amount: { type: String, required: true },
     studentCode: { type: String, required: true },
-    payment: {
-      id: { type: String, required: true },
-      status: {
-        type: String,
-        default: "pending",
-        enum: ["successfull", "pending", "failed"],
-      },
-      date: {
-        type: Date,
-        required: true,
-      },
+    whatsappNumber: {
+      type: String,
     },
   },
   { timestamps: true }
 );
 
-const Admission = mongoose.model("Admission", amissionSchema);
+const Trash = mongoose.model("Trash", trashSchema);
 
-export default Admission;
+export default Trash;

@@ -23,9 +23,9 @@ app.use("/images", express.static(path.join(__uploads_dirname, "images")));
 
 app.use(
   cors({
-    origin: "https://admission.ekagra.in",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
-    "Access-Control-Allow-Origin": "https://admission.ekagra.in",
+    "Access-Control-Allow-Origin": process.env.FRONTEND_URL,
   })
 );
 

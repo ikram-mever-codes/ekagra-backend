@@ -132,7 +132,11 @@ export const applyCoupon = async (req, res, next) => {
 
     coupon.usage = coupon.usage + 1;
     await coupon.save();
-    return res.status(200).json({ discount: coupon.discount });
+    return res.status(200).json({
+      discount: coupon.discount,
+      start: coupon.start,
+      end: coupon.end,
+    });
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }
