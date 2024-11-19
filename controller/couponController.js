@@ -31,18 +31,29 @@ export const createCoupon = async (req, res, next) => {
     return next(new ErrorHandler(error.message, 500));
   }
 };
-
 export const getAllCoupons = async (req, res, next) => {
   try {
-    let { type } = req.query;
+    let { type, expired } = req.query;
     let coupons;
+
     if (!type || type === "undefined") {
       coupons = await Coupon.find({}).sort({ createdAt: -1 });
     } else {
       coupons = await Coupon.find({ type }).sort({ createdAt: -1 });
     }
+
     if (!coupons || coupons.length === 0) {
       return next(new ErrorHandler("No coupons found.", 404));
+    }
+
+    if (expired === "true") {
+      const currentDate = new Date();
+      coupons = coupons.filter((coupon) => new Date(coupon.end) >= currentDate);
+    }
+    if (coupons.length === 0) {
+      return next(
+        new ErrorHandler("No coupons found for the given criteria.", 404)
+      );
     }
 
     return res.status(200).json({ coupons });
@@ -136,6 +147,7 @@ export const applyCoupon = async (req, res, next) => {
       discount: coupon.discount,
       start: coupon.start,
       end: coupon.end,
+      type: coupon.type,
     });
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
