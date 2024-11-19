@@ -33,7 +33,7 @@ export const createCoupon = async (req, res, next) => {
 };
 export const getAllCoupons = async (req, res, next) => {
   try {
-    let { type, expired } = req.query;
+    let { type, expired, future } = req.query;
     let coupons;
 
     if (!type || type === "undefined") {
@@ -45,11 +45,18 @@ export const getAllCoupons = async (req, res, next) => {
     if (!coupons || coupons.length === 0) {
       return next(new ErrorHandler("No coupons found.", 404));
     }
-
-    if (expired === "true") {
+    if (expired === "false") {
       const currentDate = new Date();
       coupons = coupons.filter((coupon) => new Date(coupon.end) >= currentDate);
     }
+
+    if (future === "false") {
+      const currentDate = new Date();
+      coupons = coupons.filter(
+        (coupon) => new Date(coupon.start) <= currentDate
+      );
+    }
+
     if (coupons.length === 0) {
       return next(
         new ErrorHandler("No coupons found for the given criteria.", 404)
