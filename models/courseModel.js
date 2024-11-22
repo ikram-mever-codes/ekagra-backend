@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 const courseSchema = new mongoose.Schema(
   {
@@ -13,6 +13,16 @@ const courseSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: true,
+    },
+
+    preparation: {
+      name: {
+        type: String,
+        required: true,
+      },
+      id: {
+        type: mongoose.Schema.Types.ObjectId,
+      },
     },
   },
   {

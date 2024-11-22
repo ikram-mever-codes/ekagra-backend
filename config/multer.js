@@ -12,7 +12,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   // Accept only image or PDF files
-  const fileTypes = /jpeg|jpg|png|gif|pdf/;
+  const fileTypes = /jpeg|jpg|png|gif|pdf|webp/;
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
   const mimeType = fileTypes.test(file.mimetype);
 
