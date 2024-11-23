@@ -5,6 +5,7 @@ import ErrorHandler from "../utils/errorHandler.js";
 import Payment from "../models/paymentModel.js";
 import Course from "../models/courseModel.js";
 import Coupon from "../models/couponMode.js";
+import Batch from "../models/batchModel.js";
 import Trash from "../models/TrashModel.js";
 
 export const createOrder = async (req, res, next) => {
@@ -119,9 +120,11 @@ export const paymentVerification = async (req, res) => {
         date: new Date(Date.now()),
       },
     });
-
+    let batch = await Batch.findById(objData.batch.id);
+    batch.availableSeats = batch.availableSeats - 1;
+    await batch.save();
     res.redirect(
-      `https://admission.ekagra.in/admission-form?step=3&studentCode=${studentCode}`
+      `${process.env.FRONTEND_URL}/admission-form?step=3&studentCode=${studentCode}`
     );
   } else {
     res.status(400).json({
@@ -154,7 +157,7 @@ export const deleteAdm = async (req, res, next) => {
       studentCode: adm.studentCode,
       paymentStatus: adm.payment.status,
       paymentDate: adm.payment.date,
-      city: adm.city, // Should pass the full object here if the schema expects it
+      city: adm.city,
       branch: adm.branch, // Same for branch
       course: adm.course, // Same for course
       batch: adm.batch, // Same for batch

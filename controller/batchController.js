@@ -131,7 +131,6 @@ export const getCourseBatches = async (req, res, next) => {
     let { courseId } = req.params;
 
     let batches = await Batch.find({ "course.id": courseId });
-
     return res.status(200).json({
       batches,
     });
