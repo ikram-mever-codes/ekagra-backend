@@ -144,6 +144,9 @@ export const applyCoupon = async (req, res, next) => {
       return next(new ErrorHandler("Code is Required!", 400));
     }
     coupon = await Coupon.findOne({ code });
+    if (!coupon) {
+      return next(new ErrorHandler("Coupon not applicable!", 404));
+    }
     if (type && type !== "referral") {
       return next(new ErrorHandler("Invalid Coupon! Please Try Again", 404));
     }

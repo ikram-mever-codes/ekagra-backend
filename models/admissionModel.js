@@ -44,6 +44,10 @@ const amissionSchema = new mongoose.Schema(
       },
       city: { type: String, required: true },
     },
+    state: {
+      type: String,
+      required: true,
+    },
     cityName: {
       type: String,
       required: true,

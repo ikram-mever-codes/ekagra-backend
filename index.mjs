@@ -54,7 +54,7 @@ app.post("/api/v1/upload", (req, res) => {
       return res.status(400).json({ error: "No file uploaded." });
     }
 
-    const fileUrl = `http://localhost:6001/images/${req.file.filename}`;
+    const fileUrl = `${process.env.BACKEND_URL}/images/${req.file.filename}`;
     res.json({
       message: "File uploaded successfully!",
       url: fileUrl,
