@@ -29,7 +29,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,7 +54,7 @@ app.post("/api/v1/upload", (req, res) => {
       return res.status(400).json({ error: "No file uploaded." });
     }
 
-    const fileUrl = `${process.env.BACKEND_URL}/images/${req.file.filename}`;
+    const fileUrl = `https://api.ekagra.in/images/${req.file.filename}`;
     res.json({
       message: "File uploaded successfully!",
       url: fileUrl,
