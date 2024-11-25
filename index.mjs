@@ -28,10 +28,9 @@ app.use(
     "Access-Control-Allow-Origin": process.env.FRONTEND_URL,
   })
 );
-
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/city", cityRouter);
@@ -51,7 +50,7 @@ app.post("/api/v1/upload", (req, res) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
+      return res.status(400).json({ message: "No file uploaded." });
     }
 
     const fileUrl = `https://api.ekagra.in/images/${req.file.filename}`;
