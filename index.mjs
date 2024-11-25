@@ -50,7 +50,7 @@ app.post("/api/v1/upload", (req, res) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded." });
+      return res.status(400).json({ error: "No file uploaded." });
     }
 
     const fileUrl = `https://api.ekagra.in/images/${req.file.filename}`;
