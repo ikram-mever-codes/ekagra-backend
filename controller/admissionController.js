@@ -9,14 +9,16 @@ import Batch from "../models/batchModel.js";
 import Trash from "../models/TrashModel.js";
 
 export const createOrder = async (req, res, next) => {
-  const { courseId, referenceCode, couponCode } = req.body;
-
+  const { courseId, referenceCode, couponCode, admData } = req.body;
+  if (!admData) {
+    return next(new ErrorHandler("Admission Details are required!", 400));
+  }
   let course = await Course.findById(courseId);
   if (!course) {
     return next(new ErrorHandler("Invalid Course! Try Later", 404));
   }
-  let amount = course.price;
 
+  let amount = course.price;
   if (referenceCode) {
     let coupon = await Coupon.findOne({ code: referenceCode });
     if (coupon && coupon.type === "referral") {
@@ -49,14 +51,20 @@ export const createOrder = async (req, res, next) => {
     coupon.usageCount += 1;
     await coupon.save();
   }
-
   try {
-    let orderAmount = Math.floor(amount * 100);
+    const orderAmount = Math.floor(amount * 100);
     const order = await razorpayService.orders.create({
       amount: orderAmount,
       currency: "INR",
       receipt: `receipt_${new Date().getTime()}`,
     });
+
+    const payment = new Payment({
+      razorpay_order_id: order.id,
+      amount: amount,
+      notes: admData,
+    });
+    await payment.save();
 
     res.status(200).json({
       order,
@@ -71,67 +79,75 @@ export const createOrder = async (req, res, next) => {
 export const paymentVerification = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
     req.body;
-  let { admData } = req.query;
-  if (!admData) {
-    return res.status(400).json({ message: "Missing admData in query" });
-  }
-  const stringData = decodeURIComponent(admData);
-  let objData = JSON.parse(stringData);
 
-  const body = razorpay_order_id + "|" + razorpay_payment_id;
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_SECRET)
-    .update(body.toString())
-    .digest("hex");
+  try {
+    const payment = await Payment.findOne({ razorpay_order_id });
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found!" });
+    }
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_SECRET)
+      .update(body.toString())
+      .digest("hex");
 
-  const isAuthentic = expectedSignature === razorpay_signature;
-  let data = new Date(Date.now());
-  let year = data.getFullYear();
+    const isAuthentic = expectedSignature === razorpay_signature;
 
-  if (isAuthentic) {
-    const payment = await Payment.create({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      amount: admData.amount,
-    });
-    const studentCode = await generateStudentCode(
-      year,
-      objData.city.code,
-      objData.branch.code,
-      objData.branch.id
-    );
-    await Admission.create({
-      ...objData,
-      amount: objData.amount,
-      address: {
-        addressLine1: objData.addressLine1,
-        addressLine2: objData.addressLine2,
-        city: objData.cityName,
-        pincode: objData.pincode,
-      },
-      source: objData.howDidYouKnow,
-      cityName: objData.cityName,
-      mobileNumber: objData.mobileNumber,
-      studentCode: studentCode,
-      payment: {
-        id: payment._id,
-        status: "successfull",
-        date: new Date(Date.now()),
-      },
-    });
-    let batch = await Batch.findById(objData.batch.id);
-    batch.availableSeats = batch.availableSeats - 1;
-    await batch.save();
-    res.redirect(
-      `${process.env.FRONTEND_URL}/admission-form?step=3&studentCode=${studentCode}`
-    );
-  } else {
-    res.status(400).json({
-      success: false,
-    });
+    if (isAuthentic) {
+      // Update payment record
+      payment.razorpay_payment_id = razorpay_payment_id;
+      payment.razorpay_signature = razorpay_signature;
+      payment.status = "successful";
+      await payment.save();
+
+      const admData = payment.notes;
+
+      const data = new Date(Date.now());
+      const year = data.getFullYear();
+
+      const studentCode = await generateStudentCode(
+        year,
+        admData.city.code,
+        admData.branch.code,
+        admData.branch.id
+      );
+
+      await Admission.create({
+        ...admData,
+        amount: payment.amount,
+        address: {
+          addressLine1: admData.addressLine1,
+          addressLine2: admData.addressLine2,
+          city: admData.cityName,
+          pincode: admData.pincode,
+        },
+        source: admData.howDidYouKnow,
+        studentCode: studentCode,
+        payment: {
+          id: payment._id,
+          status: "successful",
+          date: new Date(),
+        },
+      });
+
+      let batch = await Batch.findById(admData.batch.id);
+      batch.availableSeats -= 1;
+      await batch.save();
+
+      res.redirect(
+        `${process.env.FRONTEND_URL}/admission-form?step=3&studentCode=${studentCode}`
+      );
+    } else {
+      payment.status = "failed";
+      await payment.save();
+      res.status(400).json({ success: false, message: "Invalid signature" });
+    }
+  } catch (error) {
+    console.error("Payment verification failed:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 export const deleteAdm = async (req, res, next) => {
   try {
     const { id } = req.params;

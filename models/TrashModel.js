@@ -65,7 +65,6 @@ const trashSchema = new mongoose.Schema(
     preparation: {
       type: String,
       required: true,
-      enum: ["NEET", "UPSC", "BPSC", "SSC", "OTHER"],
     },
     city: {
       id: { type: mongoose.Schema.Types.ObjectId, required: true },

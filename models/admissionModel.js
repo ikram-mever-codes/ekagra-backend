@@ -72,7 +72,6 @@ const amissionSchema = new mongoose.Schema(
     preparation: {
       type: String,
       required: true,
-      enum: ["NEET", "UPSC", "BPSC", "SSC", "OTHER"],
     },
     city: {
       id: { type: mongoose.Schema.Types.ObjectId, required: true },
@@ -100,7 +99,7 @@ const amissionSchema = new mongoose.Schema(
       status: {
         type: String,
         default: "pending",
-        enum: ["successfull", "pending", "failed"],
+        enum: ["successful", "pending", "failed"],
       },
       date: {
         type: Date,
